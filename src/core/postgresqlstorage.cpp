@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -49,7 +49,7 @@ bool PostgreSqlStorage::isAvailable() const
 {
     if (!QSqlDatabase::isDriverAvailable("QPSQL")) {
         qWarning() << qPrintable(tr("PostgreSQL driver plugin not available for Qt. Installed drivers:"))
-                    << qPrintable(QSqlDatabase::drivers().join(", "));
+                   << qPrintable(QSqlDatabase::drivers().join(", "));
         return false;
     }
     return true;
@@ -115,7 +115,8 @@ bool PostgreSqlStorage::initDbSession(QSqlDatabase& db)
         break;
     default:
         // The slash got replaced with 0 or more than 2 slashes! o_O
-        qCritical() << "Your version of Qt does something _VERY_ strange to slashes in QSqlQueries! You should consult your trusted doctor!";
+        qCritical()
+            << "Your version of Qt does something _VERY_ strange to slashes in QSqlQueries! You should consult your trusted doctor!";
         return false;
         break;
     }
@@ -527,13 +528,8 @@ IdentityId PostgreSqlStorage::createIdentity(UserId user, CoreIdentity& identity
     query.bindValue(":kickreason", identity.kickReason());
     query.bindValue(":partreason", identity.partReason());
     query.bindValue(":quitreason", identity.quitReason());
-#ifdef HAVE_SSL
     query.bindValue(":sslcert", identity.sslCert().toPem());
     query.bindValue(":sslkey", identity.sslKey().toPem());
-#else
-    query.bindValue(":sslcert", QByteArray());
-    query.bindValue(":sslkey", QByteArray());
-#endif
     safeExec(query);
     if (!watchQuery(query)) {
         db.rollback();
@@ -610,13 +606,8 @@ bool PostgreSqlStorage::updateIdentity(UserId user, const CoreIdentity& identity
     query.bindValue(":kickreason", identity.kickReason());
     query.bindValue(":partreason", identity.partReason());
     query.bindValue(":quitreason", identity.quitReason());
-#ifdef HAVE_SSL
     query.bindValue(":sslcert", identity.sslCert().toPem());
     query.bindValue(":sslkey", identity.sslKey().toPem());
-#else
-    query.bindValue(":sslcert", QByteArray());
-    query.bindValue(":sslkey", QByteArray());
-#endif
     query.bindValue(":identityid", identity.id().toInt());
 
     safeExec(query);
@@ -717,10 +708,8 @@ std::vector<CoreIdentity> PostgreSqlStorage::identities(UserId user)
         identity.setKickReason(query.value(15).toString());
         identity.setPartReason(query.value(16).toString());
         identity.setQuitReason(query.value(17).toString());
-#ifdef HAVE_SSL
         identity.setSslCert(query.value(18).toByteArray());
         identity.setSslKey(query.value(19).toByteArray());
-#endif
 
         nickQuery.bindValue(":identityid", identity.id().toInt());
         QList<QString> nicks;
@@ -1385,6 +1374,34 @@ bool PostgreSqlStorage::mergeBuffersPermanently(const UserId& user, const Buffer
     return true;
 }
 
+QHash<BufferId, MsgId> PostgreSqlStorage::bufferLastMsgIds(UserId user)
+{
+    QHash<BufferId, MsgId> lastMsgHash;
+
+    QSqlDatabase db = logDb();
+    if (!beginReadOnlyTransaction(db)) {
+        qWarning() << "PostgreSqlStorage::bufferLastMsgIds(): cannot start read only transaction!";
+        qWarning() << " -" << qPrintable(db.lastError().text());
+        return lastMsgHash;
+    }
+
+    QSqlQuery query(db);
+    query.prepare(queryString("select_buffer_last_messages"));
+    query.bindValue(":userid", user.toInt());
+    safeExec(query);
+    if (!watchQuery(query)) {
+        db.rollback();
+        return lastMsgHash;
+    }
+
+    while (query.next()) {
+        lastMsgHash[query.value(0).toInt()] = query.value(1).toLongLong();
+    }
+
+    db.commit();
+    return lastMsgHash;
+}
+
 void PostgreSqlStorage::setBufferLastSeenMsg(UserId user, const BufferId& bufferId, const MsgId& msgId)
 {
     QSqlQuery query(logDb());
@@ -1883,6 +1900,82 @@ std::vector<Message> PostgreSqlStorage::requestMsgsFiltered(
                     query.value(6).toString(),
                     query.value(7).toString(),
                     Message::Flags{query.value(3).toInt()});
+        msg.setMsgId(query.value(0).toLongLong());
+        messagelist.push_back(std::move(msg));
+    }
+
+    db.commit();
+    return messagelist;
+}
+
+std::vector<Message> PostgreSqlStorage::requestMsgsForward(
+    UserId user, BufferId bufferId, MsgId first, MsgId last, int limit, Message::Types type, Message::Flags flags)
+{
+    std::vector<Message> messagelist;
+
+    QSqlDatabase db = logDb();
+    if (!beginReadOnlyTransaction(db)) {
+        qWarning() << "PostgreSqlStorage::requestMsgsForward(): cannot start read only transaction!";
+        qWarning() << " -" << qPrintable(db.lastError().text());
+        return messagelist;
+    }
+
+    BufferInfo bufferInfo = getBufferInfo(user, bufferId);
+    if (!bufferInfo.isValid()) {
+        db.rollback();
+        return messagelist;
+    }
+
+    QString queryName;
+    QVariantList params;
+
+    if (first == -1) {
+        params << std::numeric_limits<qint64>::min();
+    } else {
+        params << first.toQint64();
+    }
+
+    if (last == -1) {
+        params << std::numeric_limits<qint64>::max();
+    } else {
+        params << last.toQint64();
+    }
+
+    params << bufferId.toInt();
+
+    int typeRaw = type;
+    int flagsRaw = flags;
+    params << typeRaw;
+    params << flagsRaw;
+
+    if (limit != -1)
+        params << limit;
+    else
+        params << QVariant(QVariant::Int);
+
+    QSqlQuery query = executePreparedQuery("select_messagesForward", params, db);
+
+    if (!watchQuery(query)) {
+        qDebug() << "select_messages failed";
+        db.rollback();
+        return messagelist;
+    }
+
+    QDateTime timestamp;
+    while (query.next()) {
+        // PostgreSQL returns date/time in ISO 8601 format, no 64-bit handling needed
+        // See https://www.postgresql.org/docs/current/static/datatype-datetime.html#DATATYPE-DATETIME-OUTPUT
+        timestamp = query.value(1).toDateTime();
+        timestamp.setTimeSpec(Qt::UTC);
+        Message msg(timestamp,
+                    bufferInfo,
+                    (Message::Type)query.value(2).toInt(),
+                    query.value(8).toString(),
+                    query.value(4).toString(),
+                    query.value(5).toString(),
+                    query.value(6).toString(),
+                    query.value(7).toString(),
+                    (Message::Flags)query.value(3).toInt());
         msg.setMsgId(query.value(0).toLongLong());
         messagelist.push_back(std::move(msg));
     }

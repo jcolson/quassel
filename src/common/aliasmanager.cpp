@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,16 +24,6 @@
 #include <QStringList>
 
 #include "network.h"
-
-AliasManager& AliasManager::operator=(const AliasManager& other)
-{
-    if (this == &other)
-        return *this;
-
-    SyncableObject::operator=(other);
-    _aliases = other._aliases;
-    return *this;
-}
 
 int AliasManager::indexOf(const QString& name) const
 {
@@ -91,9 +81,9 @@ void AliasManager::addAlias(const QString& name, const QString& expansion)
 AliasManager::AliasList AliasManager::defaults()
 {
     AliasList aliases;
-    aliases << Alias("j", "/join $0") << Alias("ns", "/msg nickserv $0") << Alias("nickserv", "/msg nickserv $0")
-            << Alias("cs", "/msg chanserv $0") << Alias("chanserv", "/msg chanserv $0") << Alias("hs", "/msg hostserv $0")
-            << Alias("hostserv", "/msg hostserv $0") << Alias("wii", "/whois $0 $0") << Alias("back", "/quote away");
+    aliases << Alias("j", "/join $0") << Alias("ns", "/quote nickserv $0") << Alias("nickserv", "/quote nickserv $0")
+            << Alias("cs", "/quote chanserv $0") << Alias("chanserv", "/quote chanserv $0") << Alias("hs", "/quote hostserv $0")
+            << Alias("hostserv", "/quote hostserv $0") << Alias("wii", "/whois $0 $0") << Alias("back", "/quote away");
 
 #ifdef Q_OS_LINUX
     // let's add aliases for scripts that only run on linux

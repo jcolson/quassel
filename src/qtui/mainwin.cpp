@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -91,6 +91,7 @@
 #include "resourcetreedlg.h"
 #include "settingsdlg.h"
 #include "settingspagedlg.h"
+#include "sslinfodlg.h"
 #include "statusnotifieritem.h"
 #include "toolbaractionprovider.h"
 #include "topicwidget.h"
@@ -112,10 +113,6 @@
 #    include "snorenotificationbackend.h"
 #endif
 
-#ifdef HAVE_SSL
-#    include "sslinfodlg.h"
-#endif
-
 #ifdef HAVE_NOTIFICATION_CENTER
 #    include "osxnotificationbackend.h"
 #endif
@@ -123,8 +120,6 @@
 #ifdef HAVE_DBUS
 #    include "dockmanagernotificationbackend.h"
 #endif
-
-#include <settingspages/corehighlightsettingspage.h>
 
 #include "settingspages/aliasessettingspage.h"
 #include "settingspages/appearancesettingspage.h"
@@ -136,6 +131,7 @@
 #include "settingspages/connectionsettingspage.h"
 #include "settingspages/coreaccountsettingspage.h"
 #include "settingspages/coreconnectionsettingspage.h"
+#include "settingspages/corehighlightsettingspage.h"
 #include "settingspages/dccsettingspage.h"
 #include "settingspages/highlightsettingspage.h"
 #include "settingspages/identitiessettingspage.h"
@@ -202,9 +198,7 @@ void MainWin::init()
     connect(Client::coreConnection(), &CoreConnection::userAuthenticationRequired, this, &MainWin::userAuthenticationRequired);
     connect(Client::coreConnection(), &CoreConnection::handleNoSslInClient, this, &MainWin::handleNoSslInClient);
     connect(Client::coreConnection(), &CoreConnection::handleNoSslInCore, this, &MainWin::handleNoSslInCore);
-#ifdef HAVE_SSL
     connect(Client::coreConnection(), &CoreConnection::handleSslErrors, this, &MainWin::handleSslErrors);
-#endif
 
     // Setup Dock Areas
     setDockNestingEnabled(true);
@@ -472,7 +466,14 @@ void MainWin::setupActions()
                      coll,
                      this,
                      &MainWin::onFormatUnderlineTriggered,
-                     QKeySequence::Underline)}});
+                     QKeySequence::Underline)},
+         {"FormatStrikethrough",
+          new Action(icon::get("format-text-strikethrough"),
+                     tr("Toggle strikethrough"),
+                     coll,
+                     this,
+                     &MainWin::onFormatStrikethroughTriggered,
+                     QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S))}});
 
     // Navigation
     coll = QtUi::actionCollection("Navigation", tr("Navigation"));
@@ -1380,8 +1381,6 @@ void MainWin::handleNoSslInCore(bool* accepted)
     *accepted = (box.exec() == QMessageBox::Ignore);
 }
 
-#ifdef HAVE_SSL
-
 void MainWin::handleSslErrors(const QSslSocket* socket, bool* accepted, bool* permanently)
 {
     QString errorString = "<ul>";
@@ -1419,8 +1418,6 @@ void MainWin::handleSslErrors(const QSslSocket* socket, bool* accepted, bool* pe
         *permanently = (box2.buttonRole(box2.clickedButton()) == QMessageBox::YesRole);
     }
 }
-
-#endif /* HAVE_SSL */
 
 void MainWin::handleCoreConnectionError(const QString& error)
 {
@@ -1530,8 +1527,15 @@ void MainWin::showSettingsDlg()
 #ifdef HAVE_SONNET
     dlg->registerSettingsPage(new SonnetSettingsPage(dlg));
 #endif
-    dlg->registerSettingsPage(new HighlightSettingsPage(dlg));
-    dlg->registerSettingsPage(new CoreHighlightSettingsPage(dlg));
+    auto coreHighlightsPage = new CoreHighlightSettingsPage(dlg);
+    auto localHighlightsPage = new HighlightSettingsPage(dlg);
+    // Let CoreHighlightSettingsPage reload HighlightSettingsPage after doing an import with
+    // cleaning up.  Otherwise, HighlightSettingsPage won't show that the local rules were deleted.
+    connect(coreHighlightsPage, &CoreHighlightSettingsPage::localHighlightsChanged,
+            localHighlightsPage, &HighlightSettingsPage::load);
+    // Put core-side highlights before local/legacy highlights
+    dlg->registerSettingsPage(coreHighlightsPage);
+    dlg->registerSettingsPage(localHighlightsPage);
     dlg->registerSettingsPage(new NotificationsSettingsPage(dlg));
     dlg->registerSettingsPage(new BacklogSettingsPage(dlg));
 
@@ -1725,7 +1729,7 @@ void MainWin::clientNetworkCreated(NetworkId id)
     const Network* net = Client::network(id);
     auto* act = new QAction(net->networkName(), this);
     act->setObjectName(QString("NetworkAction-%1").arg(id.toInt()));
-    act->setData(QVariant::fromValue<NetworkId>(id));
+    act->setData(QVariant::fromValue(id));
     connect(net, &SyncableObject::updatedRemotely, this, &MainWin::clientNetworkUpdated);
     connect(act, &QAction::triggered, this, &MainWin::connectOrDisconnectFromNet);
 
@@ -1843,6 +1847,15 @@ void MainWin::onFormatUnderlineTriggered()
 
     _inputWidget->toggleFormatUnderline();
 }
+
+void MainWin::onFormatStrikethroughTriggered()
+{
+    if (!_inputWidget)
+        return;
+
+    _inputWidget->toggleFormatStrikethrough();
+}
+
 
 void MainWin::onJumpHotBufferTriggered()
 {

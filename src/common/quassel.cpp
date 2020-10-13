@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -362,14 +362,13 @@ void Quassel::setupCliParser()
             {"ident-listen", tr("The address(es) quasselcore will listen on for ident requests. Same format as --listen."), tr("<address>[,...]"), "::1,127.0.0.1"},
             {"oidentd", tr("Enable oidentd integration. In most cases you should also enable --strict-ident.")},
             {"oidentd-conffile", tr("Set path to oidentd configuration file."), tr("file")},
-#ifdef HAVE_SSL
+            {"proxy-cidr", tr("Set IP range from which proxy protocol definitions are allowed"), tr("<address>[,...]"), "::1,127.0.0.1"},
             {"require-ssl", tr("Require SSL for remote (non-loopback) client connections.")},
             {"ssl-cert", tr("Specify the path to the SSL certificate."), tr("path"), "configdir/quasselCert.pem"},
             {"ssl-key", tr("Specify the path to the SSL key."), tr("path"), "ssl-cert-path"},
             {"metrics-daemon", tr("Enable metrics API.")},
             {"metrics-port", tr("The port quasselcore will listen at for metrics requests. Only meaningful with --metrics-daemon."), tr("port"), "9558"},
             {"metrics-listen", tr("The address(es) quasselcore will listen on for metrics requests. Same format as --listen."), tr("<address>[,...]"), "::1,127.0.0.1"}
-#endif
         };
     }
 
@@ -489,11 +488,12 @@ QStringList Quassel::dataDirPaths()
 
     QStringList dataDirNames;
 #ifdef Q_OS_WIN
-    dataDirNames << qgetenv("APPDATA") + QCoreApplication::organizationDomain() + "/share/apps/quassel/"
+    dataDirNames << QCoreApplication::applicationDirPath() + "/data/quassel/"
                  << qgetenv("APPDATA") + QCoreApplication::organizationDomain() << QCoreApplication::applicationDirPath();
-#elif defined Q_OS_MAC
-    dataDirNames << QDir::homePath() + "/Library/Application Support/Quassel/" << QCoreApplication::applicationDirPath();
 #else
+#if defined Q_OS_MAC
+    dataDirNames << QDir::homePath() + "/Library/Application Support/Quassel/" << QCoreApplication::applicationDirPath();
+#endif
     // Linux et al
 
     // XDG_DATA_HOME is the location for users to override system-installed files, usually in .local/share

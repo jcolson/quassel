@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -50,9 +50,6 @@ NetworksSettingsPage::NetworksSettingsPage(QWidget* parent)
         ui.sasl->hide();
     if (!Client::isCoreFeatureEnabled(Quassel::Feature::SaslExternal))
         ui.saslExtInfo->hide();
-#ifndef HAVE_SSL
-    ui.saslExtInfo->hide();
-#endif
 
     // set up icons
     ui.renameNetwork->setIcon(icon::get("edit-rename"));
@@ -180,11 +177,9 @@ void NetworksSettingsPage::load()
                                                         "modify message rate limits.")));
     }
 
-#ifdef HAVE_SSL
     // Hide the SASL EXTERNAL notice until a network's shown.  Stops it from showing while loading
     // backlog from the core.
     sslUpdated();
-#endif
 
     // Reset network capability status in case no valid networks get selected (a rare situation)
     resetNetworkCapStates();
@@ -556,7 +551,7 @@ QListWidgetItem* NetworksSettingsPage::insertNetwork(const NetworkInfo& info)
         if (!item)
             item = new QListWidgetItem(disconnectedIcon, info.networkName, ui.networkList);
     }
-    item->setData(Qt::UserRole, QVariant::fromValue<NetworkId>(info.networkId));
+    item->setData(Qt::UserRole, QVariant::fromValue(info.networkId));
     setItemState(info.networkId, item);
     widgetHasChanged();
     return item;
@@ -575,7 +570,6 @@ void NetworksSettingsPage::displayNetwork(NetworkId id)
     if (id != 0) {
         NetworkInfo info = networkInfos[id];
 
-#ifdef HAVE_SSL
         // this is only needed when the core supports SASL EXTERNAL
         if (Client::isCoreFeatureEnabled(Quassel::Feature::SaslExternal)) {
             if (_cid) {
@@ -586,7 +580,6 @@ void NetworksSettingsPage::displayNetwork(NetworkId id)
             _cid->enableEditSsl(true);
             connect(_cid, &CertIdentity::sslSettingsUpdated, this, &NetworksSettingsPage::sslUpdated);
         }
-#endif
 
         ui.identityList->setCurrentIndex(ui.identityList->findData(info.identity.toInt()));
         ui.serverList->clear();
@@ -635,12 +628,10 @@ void NetworksSettingsPage::displayNetwork(NetworkId id)
     }
     else {
         // just clear widgets
-#ifdef HAVE_SSL
         if (_cid) {
             disconnect(_cid, &CertIdentity::sslSettingsUpdated, this, &NetworksSettingsPage::sslUpdated);
             delete _cid;
         }
-#endif
         ui.identityList->setCurrentIndex(-1);
         ui.serverList->clear();
         ui.performEdit->clear();
@@ -737,7 +728,6 @@ void NetworksSettingsPage::setSASLStatus(const CapSupportStatus saslStatus)
     }
 }
 
-#ifdef HAVE_SSL
 void NetworksSettingsPage::sslUpdated()
 {
     if (_cid && !_cid->sslKey().isNull()) {
@@ -760,7 +750,6 @@ void NetworksSettingsPage::sslUpdated()
         ui.saslExtInfo->setHidden(true);
     }
 }
-#endif
 
 /*** Network list ***/
 

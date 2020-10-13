@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -84,10 +84,8 @@ CoreNetwork::CoreNetwork(const NetworkId& networkid, CoreSession* session)
     connect(&socket, selectOverload<QAbstractSocket::SocketError>(&QAbstractSocket::error), this, &CoreNetwork::onSocketError);
     connect(&socket, &QAbstractSocket::stateChanged, this, &CoreNetwork::onSocketStateChanged);
     connect(&socket, &QIODevice::readyRead, this, &CoreNetwork::onSocketHasData);
-#ifdef HAVE_SSL
     connect(&socket, &QSslSocket::encrypted, this, &CoreNetwork::onSocketInitialized);
     connect(&socket, selectOverload<const QList<QSslError>&>(&QSslSocket::sslErrors), this, &CoreNetwork::onSslErrors);
-#endif
     connect(this, &CoreNetwork::newEvent, coreSession()->eventManager(), &EventManager::postEvent);
 
     // Custom rate limiting
@@ -268,7 +266,6 @@ void CoreNetwork::connectToIrc(bool reconnecting)
         // hostname of the server. Qt's DNS cache also isn't used by the proxy so we don't need to refresh the entry.
         QHostInfo::fromName(server.host);
     }
-#ifdef HAVE_SSL
     if (server.useSsl) {
         CoreIdentity* identity = identityPtr();
         if (identity) {
@@ -280,9 +277,6 @@ void CoreNetwork::connectToIrc(bool reconnecting)
     else {
         socket.connectToHost(server.host, server.port);
     }
-#else
-    socket.connectToHost(server.host, server.port);
-#endif
 }
 
 void CoreNetwork::disconnectFromIrc(bool requested, const QString& reason, bool withReconnect)
@@ -563,7 +557,6 @@ void CoreNetwork::onSocketInitialized()
 
     Server server = usedServer();
 
-#ifdef HAVE_SSL
     // Non-SSL connections enter here only once, always emit socketInitialized(...) in these cases
     // SSL connections call socketInitialized() twice, only emit socketInitialized(...) on the first (not yet encrypted) run
     if (!server.useSsl || !socket.isEncrypted()) {
@@ -574,9 +567,6 @@ void CoreNetwork::onSocketInitialized()
         // We'll finish setup once we're encrypted, and called again
         return;
     }
-#else
-    emit socketInitialized(identity, localAddress(), localPort(), peerAddress(), peerPort(), _socketId);
-#endif
 
     socket.setSocketOption(QAbstractSocket::KeepAliveOption, true);
 
@@ -1114,7 +1104,6 @@ void CoreNetwork::serverCapAcknowledged(const QString& capability)
         // If SASL mechanisms specified, limit to what's accepted for authentication
         // if the current identity has a cert set, use SASL EXTERNAL
         // FIXME use event
-#ifdef HAVE_SSL
         if (!identityPtr()->sslCert().isNull()) {
             if (saslMaybeSupports(IrcCap::SaslMech::EXTERNAL)) {
                 // EXTERNAL authentication supported, send request
@@ -1131,7 +1120,6 @@ void CoreNetwork::serverCapAcknowledged(const QString& capability)
             }
         }
         else {
-#endif
             if (saslMaybeSupports(IrcCap::SaslMech::PLAIN)) {
                 // PLAIN authentication supported, send request
                 // Only working with PLAIN atm, blowfish later
@@ -1146,9 +1134,7 @@ void CoreNetwork::serverCapAcknowledged(const QString& capability)
                 ));
                 sendNextCap();
             }
-#ifdef HAVE_SSL
         }
-#endif
     }
 }
 
@@ -1267,16 +1253,37 @@ void CoreNetwork::retryCapsIndividually()
 
 void CoreNetwork::beginCapNegotiation()
 {
-    // Don't begin negotiation if no capabilities are queued to request
-    if (!capNegotiationInProgress()) {
-        // If the server doesn't have any capabilities, but supports CAP LS, continue on with the
-        // normal connection.
+    if (!capsPendingNegotiation()) {
+        // No capabilities are queued for request, determine the reason why
+        QString capStatusMsg;
+        if (caps().empty()) {
+            // The server doesn't provide any capabilities, but supports CAP LS
+            capStatusMsg = tr("No capabilities available");
+        }
+        else if (capsEnabled().empty()) {
+            // The server supports capabilities (caps() is not empty) but Quassel doesn't support
+            // anything offered.  This should be uncommon.
+            capStatusMsg =
+                    tr("None of the capabilities provided by the server are supported (found: %1)")
+                    .arg(caps().join(", "));
+        }
+        else {
+            // Quassel has enabled some capabilities, but there are no further capabilities that can
+            // be negotiated.
+            // (E.g. the user has manually run "/cap ls 302" after initial negotiation.)
+            capStatusMsg =
+                    tr("No additional capabilities are supported (found: %1; currently enabled: %2)")
+                    .arg(caps().join(", "), capsEnabled().join(", "));
+        }
+        // Inform the user of the situation
         showMessage(NetworkInternalMessage(
             Message::Server,
             BufferInfo::StatusBuffer,
             "",
-            tr("No capabilities available")
+            capStatusMsg
         ));
+
+        // End any ongoing capability negotiation, allowing connection to continue
         endCapNegotiation();
         return;
     }
@@ -1306,7 +1313,7 @@ void CoreNetwork::beginCapNegotiation()
 
 void CoreNetwork::sendNextCap()
 {
-    if (capNegotiationInProgress()) {
+    if (capsPendingNegotiation()) {
         // Request the next set of capabilities and remove them from the list
         putRawLine(serverEncode(QString("CAP REQ :%1").arg(takeQueuedCaps())));
     }
@@ -1455,7 +1462,6 @@ void CoreNetwork::sendAutoWho()
     }
 }
 
-#ifdef HAVE_SSL
 void CoreNetwork::onSslErrors(const QList<QSslError>& sslErrors)
 {
     Server server = usedServer();
@@ -1497,8 +1503,6 @@ void CoreNetwork::onSslErrors(const QList<QSslError>& sslErrors)
         socket.ignoreSslErrors();
     }
 }
-
-#endif  // HAVE_SSL
 
 void CoreNetwork::checkTokenBucket()
 {

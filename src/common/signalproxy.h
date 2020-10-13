@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -333,7 +333,7 @@ bool SignalProxy::attachSignal(const typename FunctionTraits<Signal>::ClassType*
 
     // Upon signal emission, marshall the signal's arguments into a QVariantList and dispatch an RpcCall message
     connect(sender, signal, this, [this, signalName = std::move(name)](auto&&... args) {
-        this->dispatchSignal(std::move(signalName), {QVariant::fromValue<decltype(args)>(args)...});
+        this->dispatchSignal(std::move(signalName), {QVariant::fromValue(args)...});
     });
 
     return true;

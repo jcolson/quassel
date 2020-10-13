@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -29,6 +29,7 @@
 #include "backlogrequester.h"
 #include "backlogsettings.h"
 #include "client.h"
+#include "util.h"
 
 ClientBacklogManager::ClientBacklogManager(QObject* parent)
     : BacklogManager(parent)
@@ -96,6 +97,9 @@ void ClientBacklogManager::requestInitialBacklog()
 
     BacklogSettings settings;
     switch (settings.requesterType()) {
+    case BacklogRequester::AsNeeded:
+        _requester = new AsNeededBacklogRequester(this);
+        break;
     case BacklogRequester::GlobalUnread:
         _requester = new GlobalUnreadBacklogRequester(this);
         break;
@@ -117,7 +121,7 @@ void ClientBacklogManager::requestInitialBacklog()
 BufferIdList ClientBacklogManager::filterNewBufferIds(const BufferIdList& bufferIds)
 {
     BufferIdList newBuffers;
-    QSet<BufferId> availableBuffers = Client::networkModel()->allBufferIds().toSet();
+    QSet<BufferId> availableBuffers = toQSet(Client::networkModel()->allBufferIds());
     foreach (BufferId bufferId, bufferIds) {
         if (_buffersRequested.contains(bufferId) || !availableBuffers.contains(bufferId))
             continue;
@@ -143,6 +147,7 @@ void ClientBacklogManager::checkForBacklog(const QList<BufferId>& bufferIds)
         break;
     case BacklogRequester::PerBufferUnread:
     case BacklogRequester::PerBufferFixed:
+    case BacklogRequester::AsNeeded:
     default: {
         BufferIdList buffers = filterNewBufferIds(bufferIds);
         if (!buffers.isEmpty())

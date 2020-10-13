@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,8 +18,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-#ifndef BACKLOGREQUESTER_H
-#define BACKLOGREQUESTER_H
+#pragma once
+
+#include <set>
 
 #include <QList>
 
@@ -38,6 +39,7 @@ public:
         InvalidRequester = 0,
         PerBufferFixed,
         PerBufferUnread,
+        AsNeeded,              ///< Only request backlog on cores without Feature::BufferActivitySync
         GlobalUnread
     };
 
@@ -48,7 +50,7 @@ public:
     inline RequesterType type() { return _requesterType; }
     inline const QList<Message>& bufferedMessages() { return _bufferedMessages; }
 
-    inline int buffersWaiting() const { return _buffersWaiting.count(); }
+    inline int buffersWaiting() const { return int(_buffersWaiting.size()); }
     inline int totalBuffers() const { return _totalBuffers; }
 
     bool buffer(BufferId bufferId, const MessageList& messages);  //! returns false if it was the last missing backlogpart
@@ -60,9 +62,7 @@ public:
 
 protected:
     BufferIdList allBufferIds() const;
-    inline void setWaitingBuffers(const QList<BufferId>& buffers) { setWaitingBuffers(buffers.toSet()); }
-    void setWaitingBuffers(const QSet<BufferId>& buffers);
-    void addWaitingBuffer(BufferId buffer);
+    void setWaitingBuffers(const BufferIdList& buffers);
 
     ClientBacklogManager* backlogManager;
 
@@ -71,7 +71,7 @@ private:
     RequesterType _requesterType;
     MessageList _bufferedMessages;
     int _totalBuffers;
-    QSet<BufferId> _buffersWaiting;
+    std::set<BufferId> _buffersWaiting;
 };
 
 // ========================================
@@ -116,4 +116,19 @@ private:
     int _additional;
 };
 
-#endif  // BACKLOGREQUESTER_H
+// ========================================
+//  AS NEEDED BACKLOG REQUESTER
+// ========================================
+/**
+ * Backlog requester that only fetches initial backlog when the core doesn't support buffer activity
+ * tracking
+ */
+class AsNeededBacklogRequester : public BacklogRequester
+{
+public:
+    AsNeededBacklogRequester(ClientBacklogManager* backlogManager);
+    void requestBacklog(const BufferIdList& bufferIds) override;
+
+private:
+    int _legacyBacklogCount;
+};

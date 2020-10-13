@@ -1,6 +1,6 @@
 # This file contains compile flags and general build configuration for Quassel
 #
-# (C) 2014-2019 by the Quassel Project <devel@quassel-irc.org>
+# (C) 2014-2020 by the Quassel Project <devel@quassel-irc.org>
 #
 # Redistribution and use is allowed according to the terms of the BSD license.
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
@@ -45,6 +45,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wvla
         -Werror=return-type
         "$<$<BOOL:${FATAL_WARNINGS}>:-Werror>"
+        -Wno-error=deprecated  # Don't break on Qt upgrades
         -Wno-unknown-pragmas
         "$<$<NOT:$<CONFIG:Debug>>:-U_FORTIFY_SOURCE;-D_FORTIFY_SOURCE=2>"
     )
@@ -91,6 +92,8 @@ elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4456")
     #   C4458: declaration of 'identifier' hides class member
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4458")
+    #   C4996: deprecation warnings
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4996")
 
     # Link against the correct version of the C runtime
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/NODEFAULTLIB:libcmt /DEFAULTLIB:msvcrt ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")

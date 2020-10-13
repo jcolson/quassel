@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -564,7 +564,7 @@ NetworkModelController::JoinDlg::JoinDlg(const QModelIndex& index, QWidget* pare
     foreach (NetworkId id, Client::networkIds()) {
         const Network* net = Client::network(id);
         if (net->isConnected()) {
-            networks->addItem(net->networkName(), QVariant::fromValue<NetworkId>(id));
+            networks->addItem(net->networkName(), QVariant::fromValue(id));
         }
     }
 

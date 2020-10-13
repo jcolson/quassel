@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -293,15 +293,7 @@ void IrcUser::joinChannel(const QString& channelname)
 
 void IrcUser::partChannel(IrcChannel* channel)
 {
-    if (_channels.contains(channel)) {
-        _channels.remove(channel);
-        disconnect(channel, nullptr, this, nullptr);
-        channel->part(this);
-        QString channelName = channel->name();
-        SYNC_OTHER(partChannel, ARG(channelName))
-        if (_channels.isEmpty() && !network()->isMe(this))
-            quit();
-    }
+    partChannelInternal(channel, false);
 }
 
 void IrcUser::partChannel(const QString& channelname)
@@ -315,16 +307,34 @@ void IrcUser::partChannel(const QString& channelname)
     }
 }
 
+void IrcUser::partChannelInternal(IrcChannel* channel, bool skip_sync)
+{
+    if (_channels.contains(channel)) {
+        _channels.remove(channel);
+        disconnect(channel, nullptr, this, nullptr);
+        channel->part(this);
+        QString channelName = channel->name();
+        if (!skip_sync) SYNC_OTHER(partChannel, ARG(channelName))
+        if (_channels.isEmpty() && !network()->isMe(this))
+            quitInternal(skip_sync);
+    }
+}
+
 void IrcUser::quit()
 {
-    QList<IrcChannel*> channels = _channels.toList();
+    quitInternal(false);
+}
+
+void IrcUser::quitInternal(bool skip_sync)
+{
+    QList<IrcChannel*> channels = _channels.values();
     _channels.clear();
     foreach (IrcChannel* channel, channels) {
         disconnect(channel, nullptr, this, nullptr);
         channel->part(this);
     }
     network()->removeIrcUser(this);
-    SYNC(NO_ARG)
+    if (!skip_sync) SYNC_OTHER(quit, NO_ARG)
     emit quited();
 }
 

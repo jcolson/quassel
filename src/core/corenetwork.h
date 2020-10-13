@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -22,14 +22,9 @@
 
 #include <functional>
 
+#include <QSslError>
+#include <QSslSocket>
 #include <QTimer>
-
-#ifdef HAVE_SSL
-#    include <QSslError>
-#    include <QSslSocket>
-#else
-#    include <QTcpSocket>
-#endif
 
 #ifdef HAVE_QCA2
 #    include "cipher.h"
@@ -141,7 +136,7 @@ public:
      *
      * @returns True if in progress, otherwise false
      */
-    inline bool capNegotiationInProgress() const { return (!_capsQueuedIndividual.empty() || !_capsQueuedBundled.empty()); }
+    inline bool capsPendingNegotiation() const { return (!_capsQueuedIndividual.empty() || !_capsQueuedBundled.empty()); }
 
     /**
      * Queues a capability to be requested.
@@ -476,9 +471,7 @@ private slots:
     void sendAutoWho();
     void startAutoWhoCycle();
 
-#ifdef HAVE_SSL
     void onSslErrors(const QList<QSslError>& errors);
-#endif
 
     /**
      * Check the message token bucket
@@ -513,11 +506,7 @@ private:
     bool _debugLogRawIrc;      ///< If true, include raw IRC socket messages in the debug log
     qint32 _debugLogRawNetId;  ///< Network ID for logging raw IRC socket messages, or -1 for all
 
-#ifdef HAVE_SSL
     QSslSocket socket;
-#else
-    QTcpSocket socket;
-#endif
     qint64 _socketId{0};
 
     CoreUserInputHandler* _userInputHandler;

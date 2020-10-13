@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -87,7 +87,7 @@ bool CoreIrcListHelper::endOfChannelList(const NetworkId& netId)
         foreach (ChannelDescription channel, _channelLists[netId]) {
             QVariantList channelVariant;
             channelVariant << channel.channelName << channel.userCount << channel.topic;
-            channelList << qVariantFromValue<QVariant>(channelVariant);
+            channelList << QVariant::fromValue<QVariant>(channelVariant);
         }
         _finishedChannelLists[netId] = channelList;
         _channelLists.remove(netId);

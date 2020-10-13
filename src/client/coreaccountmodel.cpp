@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -98,7 +98,7 @@ QVariant CoreAccountModel::data(const QModelIndex& index, int role) const
     case Qt::DisplayRole:
         return acc.accountName();
     case AccountIdRole:
-        return QVariant::fromValue<AccountId>(acc.accountId());
+        return QVariant::fromValue(acc.accountId());
     case UuidRole:
         return acc.uuid().toString();
 

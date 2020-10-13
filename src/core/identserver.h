@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -35,6 +35,7 @@ struct Request
 {
     QPointer<QTcpSocket> socket;
     uint16_t localPort;
+    uint16_t remotePort;
     QString query;
     qint64 transactionId;
     qint64 requestId;
@@ -43,6 +44,8 @@ struct Request
 
     void respondSuccess(const QString& user);
     void respondError(const QString& error);
+
+    const static int DISCONNECTION_TIMEOUT = 500;
 };
 
 class IdentServer : public QObject

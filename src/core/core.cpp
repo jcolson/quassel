@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -215,10 +215,8 @@ void Core::init()
 
         if (Quassel::isOptionSet("metrics-daemon")) {
             _metricsServer = new MetricsServer(this);
-#ifdef HAVE_SSL
             _server.setMetricsServer(_metricsServer);
             _v6server.setMetricsServer(_metricsServer);
-#endif
         }
 
         Quassel::registerReloadHandler([]() {
@@ -302,7 +300,7 @@ void Core::saveState()
     if (_storage) {
         QVariantList activeSessions;
         for (auto&& user : instance()->_sessions.keys())
-            activeSessions << QVariant::fromValue<UserId>(user);
+            activeSessions << QVariant::fromValue(user);
         _storage->setCoreState(activeSessions);
     }
 }
@@ -574,28 +572,15 @@ bool Core::initAuthenticator(
 
 bool Core::sslSupported()
 {
-#ifdef HAVE_SSL
-    auto* sslServer = qobject_cast<SslServer*>(&instance()->_server);
-    return sslServer && sslServer->isCertValid();
-#else
-    return false;
-#endif
+    return instance()->_server.isCertValid() && instance()->_v6server.isCertValid();
 }
 
 bool Core::reloadCerts()
 {
-#ifdef HAVE_SSL
-    auto* sslServerv4 = qobject_cast<SslServer*>(&_server);
-    bool retv4 = sslServerv4->reloadCerts();
-
-    auto* sslServerv6 = qobject_cast<SslServer*>(&_v6server);
-    bool retv6 = sslServerv6->reloadCerts();
+    bool retv4 = _server.reloadCerts();
+    bool retv6 = _v6server.reloadCerts();
 
     return retv4 && retv6;
-#else
-    // SSL not supported, don't mark configuration reload as failed
-    return true;
-#endif
 }
 
 void Core::cacheSysIdent()
@@ -718,10 +703,11 @@ void Core::stopListening(const QString& reason)
 
 void Core::incomingConnection()
 {
-    auto* server = qobject_cast<QTcpServer*>(sender());
+    auto* server = qobject_cast<SslServer*>(sender());
     Q_ASSERT(server);
     while (server->hasPendingConnections()) {
-        QTcpSocket* socket = server->nextPendingConnection();
+        auto socket = qobject_cast<QSslSocket*>(server->nextPendingConnection());
+        Q_ASSERT(socket);
 
         auto* handler = new CoreAuthHandler(socket, this);
         _connectingClients.insert(handler);
@@ -730,7 +716,7 @@ void Core::incomingConnection()
         connect(handler, &AuthHandler::socketError, this, &Core::socketError);
         connect(handler, &CoreAuthHandler::handshakeComplete, this, &Core::setupClientSession);
 
-        qInfo() << qPrintable(tr("Client connected from")) << qPrintable(socket->peerAddress().toString());
+        qInfo() << qPrintable(tr("Client connected from")) << qPrintable(handler->hostAddress().toString());
 
         if (!_configured) {
             stopListening(tr("Closing server for basic setup."));
@@ -744,7 +730,7 @@ void Core::clientDisconnected()
     auto* handler = qobject_cast<CoreAuthHandler*>(sender());
     Q_ASSERT(handler);
 
-    qInfo() << qPrintable(tr("Non-authed client disconnected:")) << qPrintable(handler->socket()->peerAddress().toString());
+    qInfo() << qPrintable(tr("Non-authed client disconnected:")) << qPrintable(handler->hostAddress().toString());
     _connectingClients.remove(handler);
     handler->deleteLater();
 

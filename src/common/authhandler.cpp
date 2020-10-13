@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -28,12 +28,12 @@ AuthHandler::AuthHandler(QObject* parent)
     : QObject(parent)
 {}
 
-QTcpSocket* AuthHandler::socket() const
+QSslSocket* AuthHandler::socket() const
 {
     return _socket;
 }
 
-void AuthHandler::setSocket(QTcpSocket* socket)
+void AuthHandler::setSocket(QSslSocket* socket)
 {
     _socket = socket;
     connect(socket, selectOverload<QAbstractSocket::SocketError>(&QTcpSocket::error), this, &AuthHandler::onSocketError);

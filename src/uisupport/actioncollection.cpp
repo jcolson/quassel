@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -78,7 +78,7 @@ QAction* ActionCollection::addAction(const QString& name, QAction* action)
     else
         action->setObjectName(indexName);
     if (indexName.isEmpty())
-        indexName = indexName.sprintf("unnamed-%p", (void*)action);
+        indexName = indexName.asprintf("unnamed-%p", (void*)action);
 
     // do we already have this action?
     if (_actionByName.value(indexName, 0) == action)

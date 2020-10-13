@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -381,9 +381,7 @@ void CoreConnection::connectToCurrentAccount()
     connect(_authHandler, &ClientAuthHandler::userAuthenticationRequired, this, &CoreConnection::userAuthenticationRequired);
     connect(_authHandler, &ClientAuthHandler::handleNoSslInClient, this, &CoreConnection::handleNoSslInClient);
     connect(_authHandler, &ClientAuthHandler::handleNoSslInCore, this, &CoreConnection::handleNoSslInCore);
-#ifdef HAVE_SSL
     connect(_authHandler, &ClientAuthHandler::handleSslErrors, this, &CoreConnection::handleSslErrors);
-#endif
     connect(_authHandler, &ClientAuthHandler::loginSuccessful, this, &CoreConnection::onLoginSuccessful);
     connect(_authHandler, &ClientAuthHandler::handshakeComplete, this, &CoreConnection::onHandshakeComplete);
 

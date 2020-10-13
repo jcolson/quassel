@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -57,9 +57,7 @@ private slots:
     void on_deleteIdentity_clicked();
     void on_renameIdentity_clicked();
 
-#ifdef HAVE_SSL
     void continueUnsecured();
-#endif
     void widgetHasChanged();
     void setWidgetStates();
 
@@ -78,12 +76,10 @@ private:
     void removeIdentity(Identity* identity);
     void renameIdentity(IdentityId id, const QString& newName);
 
-#ifdef HAVE_SSL
     QSslKey keyByFilename(const QString& filename);
     void showKeyState(const QSslKey& key);
     QSslCertificate certByFilename(const QString& filename);
     void showCertState(const QSslCertificate& cert);
-#endif
 
     bool testHasChanged();
 };

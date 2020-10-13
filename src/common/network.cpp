@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -1156,8 +1156,8 @@ QDataStream& operator<<(QDataStream& out, const NetworkInfo& info)
     i["CodecForServer"]            = info.codecForServer;
     i["CodecForEncoding"]          = info.codecForEncoding;
     i["CodecForDecoding"]          = info.codecForDecoding;
-    i["NetworkId"]                 = QVariant::fromValue<NetworkId>(info.networkId);
-    i["Identity"]                  = QVariant::fromValue<IdentityId>(info.identity);
+    i["NetworkId"]                 = QVariant::fromValue(info.networkId);
+    i["Identity"]                  = QVariant::fromValue(info.identity);
     i["MessageRateBurstSize"]      = info.messageRateBurstSize;
     i["MessageRateDelay"]          = info.messageRateDelay;
     i["AutoReconnectInterval"]     = info.autoReconnectInterval;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -18,16 +18,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-#include <QHostAddress>
-#include <QTimer>
+#include <utility>
+
 #include <QtEndian>
 
-#ifdef HAVE_SSL
-#    include <QSslSocket>
-#else
-#    include <QTcpSocket>
-#endif
+#include <QHostAddress>
+#include <QSslSocket>
+#include <QTimer>
 
+#include "proxyline.h"
 #include "remotepeer.h"
 #include "util.h"
 
@@ -41,6 +40,8 @@ RemotePeer::RemotePeer(::AuthHandler* authHandler, QTcpSocket* socket, Compresso
     , _socket(socket)
     , _compressor(new Compressor(socket, level, this))
     , _signalProxy(nullptr)
+    , _proxyLine({})
+    , _useProxyLine(false)
     , _heartBeatTimer(new QTimer(this))
     , _heartBeatCount(0)
     , _lag(0)
@@ -51,12 +52,10 @@ RemotePeer::RemotePeer(::AuthHandler* authHandler, QTcpSocket* socket, Compresso
     connect(socket, selectOverload<QAbstractSocket::SocketError>(&QAbstractSocket::error), this, &RemotePeer::onSocketError);
     connect(socket, &QAbstractSocket::disconnected, this, &Peer::disconnected);
 
-#ifdef HAVE_SSL
     auto* sslSocket = qobject_cast<QSslSocket*>(socket);
     if (sslSocket) {
         connect(sslSocket, &QSslSocket::encrypted, this, [this]() { emit secureStateChanged(true); });
     }
-#endif
 
     connect(_compressor, &Compressor::readyRead, this, &RemotePeer::onReadyRead);
     connect(_compressor, &Compressor::error, this, &RemotePeer::onCompressionError);
@@ -83,24 +82,40 @@ void RemotePeer::onCompressionError(Compressor::Error error)
 
 QString RemotePeer::description() const
 {
-    if (socket())
-        return socket()->peerAddress().toString();
+    return address();
+}
 
-    return QString();
+QHostAddress RemotePeer::hostAddress() const
+{
+    if (_useProxyLine) {
+        return _proxyLine.sourceHost;
+    }
+    else if (socket()) {
+        return socket()->peerAddress();
+    }
+
+    return {};
 }
 
 QString RemotePeer::address() const
 {
-    if (socket())
-        return socket()->peerAddress().toString();
-
-    return QString();
+    QHostAddress address = hostAddress();
+    if (address.isNull()) {
+        return {};
+    }
+    else {
+        return address.toString();
+    }
 }
 
 quint16 RemotePeer::port() const
 {
-    if (socket())
+    if (_useProxyLine) {
+        return _proxyLine.sourcePort;
+    }
+    else if (socket()) {
         return socket()->peerPort();
+    }
 
     return 0;
 }
@@ -159,22 +174,17 @@ bool RemotePeer::isSecure() const
     if (socket()) {
         if (isLocal())
             return true;
-#ifdef HAVE_SSL
         auto* sslSocket = qobject_cast<QSslSocket*>(socket());
         if (sslSocket && sslSocket->isEncrypted())
             return true;
-#endif
     }
     return false;
 }
 
 bool RemotePeer::isLocal() const
 {
-    if (socket()) {
-        if (socket()->peerAddress() == QHostAddress::LocalHost || socket()->peerAddress() == QHostAddress::LocalHostIPv6)
-            return true;
-    }
-    return false;
+    return hostAddress() == QHostAddress::LocalHost ||
+           hostAddress() == QHostAddress::LocalHostIPv6;
 }
 
 bool RemotePeer::isOpen() const
@@ -212,7 +222,7 @@ bool RemotePeer::readMessage(QByteArray& msg)
     if (_msgSize == 0) {
         if (_compressor->bytesAvailable() < 4)
             return false;
-        _compressor->read((char*)&_msgSize, 4);
+        _compressor->read((char*) &_msgSize, 4);
         _msgSize = qFromBigEndian<quint32>(_msgSize);
 
         if (_msgSize > maxMessageSize) {
@@ -279,4 +289,22 @@ void RemotePeer::sendHeartBeat()
 
     dispatch(HeartBeat(QDateTime::currentDateTime().toUTC()));
     ++_heartBeatCount;
+}
+
+void RemotePeer::setProxyLine(ProxyLine proxyLine)
+{
+    _proxyLine = std::move(proxyLine);
+
+    if (socket()) {
+        if (_proxyLine.protocol != QAbstractSocket::UnknownNetworkLayerProtocol) {
+            QList<QString> subnets = Quassel::optionValue("proxy-cidr").split(",");
+            for (const QString& subnet : subnets) {
+                if (socket()->peerAddress().isInSubnet(QHostAddress::parseSubnet(subnet))) {
+                    _useProxyLine = true;
+                    return;
+                }
+            }
+        }
+    }
+    _useProxyLine = false;
 }

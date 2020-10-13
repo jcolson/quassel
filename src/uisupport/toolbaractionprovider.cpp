@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -150,7 +150,7 @@ void ToolBarActionProvider::networkCreated(NetworkId id)
     Action* act = new Action(net->networkName(), this);
     _networkActions[id] = act;
     act->setObjectName(QString("NetworkAction-%1").arg(id.toInt()));
-    act->setData(QVariant::fromValue<NetworkId>(id));
+    act->setData(QVariant::fromValue(id));
     connect(net, &Network::updatedRemotely, this, [this]() { networkUpdated(); });
     connect(act, &QAction::triggered, this, &ToolBarActionProvider::connectOrDisconnectNet);
     networkUpdated(net);

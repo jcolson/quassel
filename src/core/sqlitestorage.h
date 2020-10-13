@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -38,7 +38,6 @@ public:
 
     std::unique_ptr<AbstractSqlMigrationReader> createMigrationReader() override;
 
-public slots:
     /* General */
 
     bool isAvailable() const override;
@@ -96,6 +95,7 @@ public slots:
     bool removeBuffer(const UserId& user, const BufferId& bufferId) override;
     bool renameBuffer(const UserId& user, const BufferId& bufferId, const QString& newName) override;
     bool mergeBuffersPermanently(const UserId& user, const BufferId& bufferId1, const BufferId& bufferId2) override;
+    QHash<BufferId, MsgId> bufferLastMsgIds(UserId user) override;
     void setBufferLastSeenMsg(UserId user, const BufferId& bufferId, const MsgId& msgId) override;
     QHash<BufferId, MsgId> bufferLastSeenMsgIds(UserId user) override;
     void setBufferMarkerLineMsg(UserId user, const BufferId& bufferId, const MsgId& msgId) override;
@@ -114,6 +114,13 @@ public slots:
     bool logMessages(MessageList& msgs) override;
     std::vector<Message> requestMsgs(UserId user, BufferId bufferId, MsgId first = -1, MsgId last = -1, int limit = -1) override;
     std::vector<Message> requestMsgsFiltered(UserId user,
+                                             BufferId bufferId,
+                                             MsgId first = -1,
+                                             MsgId last = -1,
+                                             int limit = -1,
+                                             Message::Types type = Message::Types{-1},
+                                             Message::Flags flags = Message::Flags{-1}) override;
+    std::vector<Message> requestMsgsForward(UserId user,
                                              BufferId bufferId,
                                              MsgId first = -1,
                                              MsgId last = -1,

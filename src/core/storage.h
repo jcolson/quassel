@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -56,7 +56,6 @@ public:
 
     };
 
-public slots:
     /* General */
 
     //! Check if the storage type is available.
@@ -386,6 +385,12 @@ public slots:
      */
     virtual void setBufferLastSeenMsg(UserId user, const BufferId& bufferId, const MsgId& msgId) = 0;
 
+    //! Get a Hash of all last message ids
+    /** This Method is called when the Quassel Core is started to restore the lastMsgIds
+     * \param user      The Owner of the buffers
+     */
+    virtual QHash<BufferId, MsgId> bufferLastMsgIds(UserId user) = 0;
+
     //! Get a Hash of all last seen message ids
     /** This Method is called when the Quassel Core is started to restore the lastSeenMsgIds
      * \param user      The Owner of the buffers
@@ -521,6 +526,23 @@ public slots:
                                                      int limit = -1,
                                                      Message::Types type = Message::Types{-1},
                                                      Message::Flags flags = Message::Flags{-1}) = 0;
+
+    //! Request a certain number messages stored in a given buffer, matching certain filters, ascending
+    /** \param buffer   The buffer we request messages from
+     *  \param first    if != -1 return only messages with a MsgId >= first
+     *  \param last     if != -1 return only messages with a MsgId < last
+     *  \param limit    if != -1 limit the returned list to a max of \limit entries
+     *  \param type     The Message::Types that should be returned
+     *  \param flags     The Message::Flags that should be returned
+     *  \return The requested list of messages
+     */
+    virtual std::vector<Message> requestMsgsForward(UserId user,
+                                                    BufferId bufferId,
+                                                    MsgId first = -1,
+                                                    MsgId last = -1,
+                                                    int limit = -1,
+                                                    Message::Types type = Message::Types{-1},
+                                                    Message::Flags flags = Message::Flags{-1}) = 0;
 
     //! Request a certain number of messages across all buffers
     /** \param first    if != -1 return only messages with a MsgId >= first

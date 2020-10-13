@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -142,6 +142,7 @@ public:
         EcdsaCertfpKeys,      ///< ECDSA keys for CertFP in identities
         LongMessageId,        ///< 64-bit IDs for messages
         SyncedCoreInfo,       ///< CoreInfo dynamically updated using signals
+        LoadBacklogForwards,  ///< Allow loading backlog in ascending order, old to new
     };
     Q_ENUMS(Feature)
 

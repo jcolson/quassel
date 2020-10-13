@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -149,7 +149,7 @@ QVariant ShortcutsModel::data(const QModelIndex& index, int role) const
         return QVariant();
 
     case ActionRole:
-        return QVariant::fromValue<QObject*>(action);
+        return QVariant::fromValue(action);
 
     case DefaultShortcutRole:
         return action->shortcut(Action::DefaultShortcut);

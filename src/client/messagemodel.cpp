@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -393,16 +393,34 @@ void MessageModel::requestBacklog(BufferId bufferId)
     BacklogSettings backlogSettings;
     int requestCount = backlogSettings.dynamicBacklogAmount();
 
+    // Assume there's no available messages
+    MsgId oldestAvailableMsgId{-1};
+
+    // Try to find the oldest (lowest ID) message belonging to this buffer
     for (int i = 0; i < messageCount(); i++) {
         if (messageItemAt(i)->bufferId() == bufferId) {
-            _messagesWaiting[bufferId] = requestCount;
-            Client::backlogManager()->emitMessagesRequested(tr("Requesting %1 messages from backlog for buffer %2:%3")
-                                                                .arg(requestCount)
-                                                                .arg(Client::networkModel()->networkName(bufferId))
-                                                                .arg(Client::networkModel()->bufferName(bufferId)));
-            Client::backlogManager()->requestBacklog(bufferId, -1, messageItemAt(i)->msgId(), requestCount);
-            return;
+            // Match found, use this message ID for requesting more backlog
+            oldestAvailableMsgId = messageItemAt(i)->msgId();
+            break;
         }
+    }
+
+    // Prepare to fetch messages
+    _messagesWaiting[bufferId] = requestCount;
+    Client::backlogManager()->emitMessagesRequested(tr("Requesting %1 messages from backlog for buffer %2:%3")
+                                                        .arg(requestCount)
+                                                        .arg(Client::networkModel()->networkName(bufferId))
+                                                        .arg(Client::networkModel()->bufferName(bufferId)));
+
+    if (oldestAvailableMsgId.isValid()) {
+        // Request messages from backlog starting from this message ID, going into the past
+        Client::backlogManager()->requestBacklog(bufferId, -1, oldestAvailableMsgId, requestCount);
+    }
+    else {
+        // No existing messages could be found.  Try to fetch the newest available messages instead.
+        // This may happen when initial backlog fetching is set to zero, or if no messages exist in
+        // a buffer.
+        Client::backlogManager()->requestBacklog(bufferId, -1, -1, requestCount);
     }
 }
 
@@ -439,11 +457,11 @@ QVariant MessageModelItem::data(int column, int role) const
 
     switch (role) {
     case MessageModel::MessageRole:
-        return QVariant::fromValue<Message>(message());
+        return QVariant::fromValue(message());
     case MessageModel::MsgIdRole:
-        return QVariant::fromValue<MsgId>(msgId());
+        return QVariant::fromValue(msgId());
     case MessageModel::BufferIdRole:
-        return QVariant::fromValue<BufferId>(bufferId());
+        return QVariant::fromValue(bufferId());
     case MessageModel::TypeRole:
         return msgType();
     case MessageModel::FlagsRole:
@@ -451,9 +469,9 @@ QVariant MessageModelItem::data(int column, int role) const
     case MessageModel::TimestampRole:
         return timestamp();
     case MessageModel::RedirectedToRole:
-        return qVariantFromValue<BufferId>(_redirectedTo);
+        return QVariant::fromValue(_redirectedTo);
     default:
-        return QVariant();
+        return {};
     }
 }
 

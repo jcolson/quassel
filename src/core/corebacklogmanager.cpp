@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -105,6 +105,18 @@ QVariantList CoreBacklogManager::requestBacklogFiltered(BufferId bufferId, MsgId
             });
         }
     }
+
+    return backlog;
+}
+
+QVariantList CoreBacklogManager::requestBacklogForward(BufferId bufferId, MsgId first, MsgId last, int limit, int type, int flags)
+{
+    QVariantList backlog;
+    auto msgList = Core::requestMsgsForward(coreSession()->user(), bufferId, first, last, limit, Message::Types{type}, Message::Flags{flags});
+
+    std::transform(msgList.cbegin(), msgList.cend(), std::back_inserter(backlog), [](auto&& msg) {
+        return QVariant::fromValue(msg);
+    });
 
     return backlog;
 }

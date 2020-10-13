@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -130,6 +130,9 @@ public:
         // Don't sync this as individual clients may suppress different kinds of behaviors
         _awayChanged = false;
     }
+
+    void partChannelInternal(IrcChannel* channel, bool skip_sync = false);
+    void quitInternal(bool skip_sync = false);
 
 public slots:
     void setUser(const QString& user);

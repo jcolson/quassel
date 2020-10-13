@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -71,7 +71,6 @@ QDataStream& operator<<(QDataStream& out, const Message& msg)
     Q_ASSERT(SignalProxy::current());
     Q_ASSERT(SignalProxy::current()->targetPeer());
 
-    // We do not serialize the sender prefixes until we have a new protocol or client-features implemented
     out << msg.msgId();
 
     if (SignalProxy::current()->targetPeer()->hasFeature(Quassel::Feature::LongTime)) {

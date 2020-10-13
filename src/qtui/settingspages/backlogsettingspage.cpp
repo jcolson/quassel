@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -33,7 +33,8 @@ BacklogSettingsPage::BacklogSettingsPage(QWidget* parent)
     // not an auto widget, because we store index + 1
 
     // FIXME: global backlog requester disabled until issues ruled out
-    ui.requesterType->removeItem(2);
+    ui.requesterType->removeItem(3);
+    // If modifying ui.requesterType's item list, set to the index of "Globally unread messages"
 
     connectToWidgetChangedSignal(ui.requesterType, this, &BacklogSettingsPage::widgetHasChanged);
 }
@@ -45,7 +46,7 @@ bool BacklogSettingsPage::hasDefaults() const
 
 void BacklogSettingsPage::defaults()
 {
-    ui.requesterType->setCurrentIndex(BacklogRequester::PerBufferUnread - 1);
+    ui.requesterType->setCurrentIndex(BacklogRequester::AsNeeded - 1);
 
     SettingsPage::defaults();
 }

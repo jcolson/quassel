@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -81,14 +81,14 @@ bool DccSettingsPage::hasDefaults() const
 
 void DccSettingsPage::defaults()
 {
-    _localConfig = DccConfig();
+    _localConfig.fromVariantMap(DccConfig{}.toVariantMap());
     SettingsPage::load();
     widgetHasChanged();
 }
 
 void DccSettingsPage::load()
 {
-    _localConfig = isClientConfigValid() ? *_clientConfig : DccConfig{};
+    _localConfig.fromVariantMap(isClientConfigValid() ? _clientConfig->toVariantMap() : DccConfig{}.toVariantMap());
     SettingsPage::load();
     widgetHasChanged();
 }

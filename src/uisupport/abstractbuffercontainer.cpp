@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -46,6 +46,10 @@ void AbstractBufferContainer::rowsAboutToBeRemoved(const QModelIndex& parent, in
     }
     else {
         // check if there are explicitly buffers removed
+        // Make sure model is valid first
+        if (!parent.model()) {
+            return;
+        }
         for (int i = start; i <= end; i++) {
             QVariant variant = parent.model()->index(i, 0, parent).data(NetworkModel::BufferIdRole);
             if (!variant.isValid())

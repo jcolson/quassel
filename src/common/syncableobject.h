@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -58,7 +58,6 @@ class COMMON_EXPORT SyncableObject : public QObject
 public:
     SyncableObject(QObject* parent = nullptr);
     SyncableObject(const QString& objectName, QObject* parent = nullptr);
-    SyncableObject(const SyncableObject& other, QObject* parent = nullptr);
     ~SyncableObject() override;
 
     //! Stores the object's state into a QVariantMap.
@@ -93,8 +92,6 @@ public slots:
 
 protected:
     void sync_call__(SignalProxy::ProxyMode modeType, const char* funcname, ...) const;
-
-    SyncableObject& operator=(const SyncableObject& other);
 
 signals:
     void initDone();

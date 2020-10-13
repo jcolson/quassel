@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -179,7 +179,7 @@ void Identity::setToDefaults()
     setAutoAwayTime(10);
     setAutoAwayReason(tr("Not here. No, really. not here!"));
     setAutoAwayReasonEnabled(false);
-    setDetachAwayEnabled(false);
+    setDetachAwayEnabled(true);
     setDetachAwayReason(tr("All Quassel clients vanished from the face of the earth..."));
     setDetachAwayReasonEnabled(false);
     setIdent("quassel");

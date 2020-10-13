@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -45,6 +45,15 @@ public slots:
     void defaults() final override;
     void revert();
     void clientConnected();
+
+signals:
+    /**
+     * Signals the local highlight settings have been changed as part of cleaning up after
+     * importing the rules locally.
+     *
+     * @see CoreHighlightSettingsPage::importRules()
+     */
+    void localHighlightsChanged();
 
 private slots:
     void coreConnectionStateChanged(bool state);

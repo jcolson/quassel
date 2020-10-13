@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -92,9 +92,7 @@ private slots:
      */
     void clientNetworkCapsUpdated();
 
-#ifdef HAVE_SSL
     void sslUpdated();
-#endif
 
     void on_networkList_itemSelectionChanged();
     void on_addNetwork_clicked();
@@ -134,9 +132,7 @@ private:
     NetworkId currentId;
     QHash<NetworkId, NetworkInfo> networkInfos;
     bool _ignoreWidgetChanges{false};
-#ifdef HAVE_SSL
     CertIdentity* _cid{nullptr};
-#endif
 
     QIcon connectedIcon, connectingIcon, disconnectedIcon;
 

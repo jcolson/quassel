@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -23,6 +23,7 @@
 #include "common-export.h"
 
 #include <QList>
+#include <QSet>
 #include <QString>
 #include <QVariant>
 
@@ -51,11 +52,21 @@ COMMON_EXPORT QString decodeString(const QByteArray& input, QTextCodec* codec = 
 COMMON_EXPORT uint editingDistance(const QString& s1, const QString& s2);
 
 template<typename T>
+QSet<T> toQSet(const QList<T>& list)
+{
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    return list.toSet();
+#else
+    return {list.begin(), list.end()};
+#endif
+}
+
+template<typename T>
 QVariantList toVariantList(const QList<T>& list)
 {
     QVariantList variants;
     for (int i = 0; i < list.count(); i++) {
-        variants << QVariant::fromValue<T>(list[i]);
+        variants << QVariant::fromValue(list[i]);
     }
     return variants;
 }

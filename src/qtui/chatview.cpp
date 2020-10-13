@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -35,6 +35,7 @@
 #include "messagefilter.h"
 #include "qtui.h"
 #include "qtuistyle.h"
+#include "util.h"
 
 ChatView::ChatView(BufferId bufferId, QWidget* parent)
     : QGraphicsView(parent)
@@ -83,6 +84,9 @@ void ChatView::init(MessageFilter* filter)
     connect(verticalScrollBar(), &QAbstractSlider::valueChanged, this, &ChatView::verticalScrollbarChanged);
     _lastScrollbarPos = verticalScrollBar()->maximum();
 
+    // Workaround for the ChatView scrolling up a fair bit when scrollbar becomes visible
+    verticalScrollBar()->installEventFilter(this);
+
     connect(Client::networkModel(), &NetworkModel::markerLineSet, this, &ChatView::markerLineSet);
 
     // only connect if client is synched with a core
@@ -99,8 +103,7 @@ bool ChatView::event(QEvent* event)
         case Qt::Key_Down:
         case Qt::Key_PageUp:
         case Qt::Key_PageDown:
-            if (!verticalScrollBar()->isVisible()) {
-                scene()->requestBacklog();
+            if (requestBacklogForScroll()) {
                 return true;
             }
         default:
@@ -144,8 +147,7 @@ bool ChatView::event(QEvent* event)
     if (event->type() == QEvent::Wheel
         || (event->type() == QEvent::TouchBegin && ((QTouchEvent*)event)->device()->type() == QTouchDevice::TouchScreen)
         || event->type() == QEvent::TouchUpdate) {
-        if (!verticalScrollBar()->isVisible()) {
-            scene()->requestBacklog();
+        if (requestBacklogForScroll()) {
             return true;
         }
     }
@@ -156,6 +158,28 @@ bool ChatView::event(QEvent* event)
     }
 
     return QGraphicsView::event(event);
+}
+
+bool ChatView::eventFilter(QObject* watched, QEvent* event)
+{
+    QAbstractSlider* vbar = verticalScrollBar();
+    Q_ASSERT(vbar);
+
+    if (watched != vbar) {
+        // Ignore and pass through all events not featuring the scrollbar
+        return false;
+    }
+    if (event->type() == QEvent::Show) {
+        // FIXME: Workaround for the ChatView scrolling up a fair bit when transitioning from the
+        // vertical scrollbar not being visible, to becoming visible.  This happens especially
+        // often when no initial backlog is loaded.
+        if (_backlogRequestedBeforeScrollable) {
+            _backlogRequestedBeforeScrollable = false;
+            vbar->setValue(vbar->maximum());
+        }
+    }
+    // Pass through all events
+    return false;
 }
 
 void ChatView::resizeEvent(QResizeEvent* event)
@@ -293,7 +317,7 @@ QSet<ChatLine*> ChatView::visibleChatLines(Qt::ItemSelectionMode mode) const
 
 QList<ChatLine*> ChatView::visibleChatLinesSorted(Qt::ItemSelectionMode mode) const
 {
-    QList<ChatLine*> result = visibleChatLines(mode).toList();
+    QList<ChatLine*> result = visibleChatLines(mode).values();
     std::sort(result.begin(), result.end(), chatLinePtrLessThan);
     return result;
 }
@@ -406,6 +430,24 @@ void ChatView::setHasCache(ChatLine* line, bool hasCache)
         _linesWithCache.insert(line);
     else
         _linesWithCache.remove(line);
+}
+
+bool ChatView::requestBacklogForScroll()
+{
+    if (!verticalScrollBar()->isVisible()) {
+        // Not able to scroll, fetch backlog
+        //
+        // Future improvement: continue fetching backlog in chunks until the scrollbar is visible,
+        // or the beginning of the buffer has been reached.
+        scene()->requestBacklog();
+        _backlogRequestedBeforeScrollable = true;
+        // Backlog has been requested
+        return true;
+    }
+    else {
+        // Scrollbar already visible, no backlog requested
+        return false;
+    }
 }
 
 void ChatView::checkChatLineCaches()

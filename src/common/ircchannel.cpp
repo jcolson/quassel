@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -231,7 +231,7 @@ void IrcChannel::part(IrcUser* ircuser)
             _userModes.clear();
             foreach (IrcUser* user, users) {
                 disconnect(user, nullptr, this, nullptr);
-                user->partChannel(this);
+                user->partChannelInternal(this, true);
             }
             emit parted();
             network()->removeIrcChannel(this);

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,18 +24,6 @@
 
 #include "expressionmatch.h"
 #include "util.h"
-
-HighlightRuleManager& HighlightRuleManager::operator=(const HighlightRuleManager& other)
-{
-    if (this == &other)
-        return *this;
-
-    SyncableObject::operator=(other);
-    _highlightRuleList = other._highlightRuleList;
-    _nicksCaseSensitive = other._nicksCaseSensitive;
-    _highlightNick = other._highlightNick;
-    return *this;
-}
 
 int HighlightRuleManager::indexOf(int id) const
 {

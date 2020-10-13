@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -49,6 +49,18 @@ private slots:
     void on_deactivateBuffer_clicked();
     void switchOperationMode(int idx);
 
+    /**
+     * Sets the local cache of the current backlog requester type, used to determine if showing
+     * backlog in the Chat Monitor will work
+     *
+     * @seealso BacklogSettings::setRequesterType()
+     */
+    void setRequesterType(const QVariant&);
+
+    /**
+     * Event handler for Show Backlog Unavailable Details button
+     */
+    void on_showBacklogUnavailableDetails_clicked();
 private:
     Ui::ChatMonitorSettingsPage ui;
     QHash<QString, QVariant> settings;

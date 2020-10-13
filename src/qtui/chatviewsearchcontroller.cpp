@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -118,7 +118,7 @@ void ChatViewSearchController::updateHighlights(bool reuse)
             if (line)
                 chatLines << line;
         }
-        foreach (ChatLine* line, QList<ChatLine*>(chatLines.toList())) {
+        foreach (ChatLine* line, chatLines) {
             updateHighlights(line);
         }
     }
@@ -302,8 +302,7 @@ void ChatViewSearchController::repositionHighlights()
         if (line)
             chatLines << line;
     }
-    QList<ChatLine*> chatLineList(chatLines.toList());
-    foreach (ChatLine* line, chatLineList) {
+    foreach (ChatLine* line, chatLines) {
         repositionHighlights(line);
     }
 }

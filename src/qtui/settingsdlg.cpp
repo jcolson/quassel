@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -91,7 +91,7 @@ void SettingsDlg::registerSettingsPage(SettingsPage* sp)
     else
         item = new QTreeWidgetItem(cat, QStringList(sp->title()));
 
-    item->setData(0, SettingsPageRole, QVariant::fromValue<QObject*>(sp));
+    item->setData(0, SettingsPageRole, QVariant::fromValue(sp));
     pageIsLoaded[sp] = false;
     if (!ui.settingsTree->selectedItems().count())
         ui.settingsTree->setCurrentItem(item);

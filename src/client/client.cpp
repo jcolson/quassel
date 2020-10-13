@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -241,10 +241,8 @@ const Identity* Client::identity(IdentityId id)
 void Client::createIdentity(const CertIdentity& id)
 {
     QVariantMap additional;
-#ifdef HAVE_SSL
     additional["KeyPem"] = id.sslKey().toPem();
     additional["CertPem"] = id.sslCert().toPem();
-#endif
     emit instance()->requestCreateIdentity(id, additional);
 }
 

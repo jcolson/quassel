@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,13 +24,8 @@
 
 #include <QNetworkConfigurationManager>
 #include <QPointer>
+#include <QSslSocket>
 #include <QTimer>
-
-#ifdef HAVE_SSL
-#    include <QSslSocket>
-#else
-#    include <QTcpSocket>
-#endif
 
 #include "coreaccount.h"
 #include "remotepeer.h"
@@ -111,9 +106,7 @@ signals:
     void userAuthenticationRequired(CoreAccount*, bool* valid, const QString& errorMessage = QString());
     void handleNoSslInClient(bool* accepted);
     void handleNoSslInCore(bool* accepted);
-#ifdef HAVE_SSL
     void handleSslErrors(const QSslSocket* socket, bool* accepted, bool* permanently);
-#endif
 
 private slots:
     void connectToCurrentAccount();

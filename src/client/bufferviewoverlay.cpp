@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005-2019 by the Quassel Project                        *
+ *   Copyright (C) 2005-2020 by the Quassel Project                        *
  *   devel@quassel-irc.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -27,6 +27,7 @@
 #include "clientbacklogmanager.h"
 #include "clientbufferviewmanager.h"
 #include "networkmodel.h"
+#include "util.h"
 
 const int BufferViewOverlay::_updateEventId = QEvent::registerEventType();
 
@@ -92,13 +93,13 @@ void BufferViewOverlay::addView(int viewId)
                     if (Client::networkModel()->networkId(bufferId) == config->networkId())
                         buffers << bufferId;
                 }
-                foreach (BufferId bufferId, config->temporarilyRemovedBuffers().toList()) {
+                for (BufferId bufferId : config->temporarilyRemovedBuffers()) {
                     if (Client::networkModel()->networkId(bufferId) == config->networkId())
                         buffers << bufferId;
                 }
             }
             else {
-                buffers = BufferIdList::fromSet(config->bufferList().toSet() + config->temporarilyRemovedBuffers());
+                buffers = (toQSet(config->bufferList()) + config->temporarilyRemovedBuffers()).values();
             }
             Client::backlogManager()->checkForBacklog(buffers);
         }
@@ -207,12 +208,12 @@ void BufferViewOverlay::updateHelper()
 
             // we have to apply several filters before we can add a buffer to a category (visible, removed, ...)
             buffers += filterBuffersByConfig(config->bufferList(), config);
-            tempRemovedBuffers += filterBuffersByConfig(config->temporarilyRemovedBuffers().toList(), config);
+            tempRemovedBuffers += filterBuffersByConfig(config->temporarilyRemovedBuffers().values(), config);
             removedBuffers += config->removedBuffers();
         }
 
         // prune the sets from overlap
-        QSet<BufferId> availableBuffers = Client::networkModel()->allBufferIds().toSet();
+        QSet<BufferId> availableBuffers = toQSet(Client::networkModel()->allBufferIds());
 
         buffers.intersect(availableBuffers);
 
